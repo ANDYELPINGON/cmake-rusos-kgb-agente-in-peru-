@@ -1,121 +1,115 @@
-include_directories(
-  ${CMAKE_CURRENT_BINARY_DIR}
-  ${CMake_BINARY_DIR}/Source
-  ${CMake_SOURCE_DIR}/Source
-  ${CMake_SOURCE_DIR}/Source/CTest
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Test.cmake.in
+               ${CMAKE_CURRENT_BINARY_DIR}/Test.cmake @ONLY)
+
+macro(add_CMakeOnly_test test)
+  add_test(CMakeOnly.${test} ${CMAKE_CMAKE_COMMAND}
+    -DTEST=${test}
+    -P ${CMAKE_CURRENT_BINARY_DIR}/Test.cmake
+    )
+endmacro()
+
+add_CMakeOnly_test(LinkInterfaceLoop)
+# If a bug is introduced in CMake that causes an infinite loop while
+# analyzing LinkInterfaceLoop then don't let the test run too long.
+# Use an option to customize it so that the timeout can be extended
+# on busy machines.
+if(NOT DEFINED CMake_TEST_CMakeOnly.LinkInterfaceLoop_TIMEOUT)
+  set(CMake_TEST_CMakeOnly.LinkInterfaceLoop_TIMEOUT 90)
+endif()
+set_property(TEST CMakeOnly.LinkInterfaceLoop PROPERTY TIMEOUT ${CMake_TEST_CMakeOnly.LinkInterfaceLoop_TIMEOUT})
+
+add_CMakeOnly_test(CheckSymbolExists)
+
+add_CMakeOnly_test(CheckCXXSymbolExists)
+
+add_CMakeOnly_test(CheckCXXCompilerFlag)
+
+add_CMakeOnly_test(CheckLanguage)
+set_property(TEST CMakeOnly.CheckLanguage APPEND PROPERTY LABELS "HIP" "Fortran")
+if (CMake_TEST_HIP)
+  add_CMakeOnly_test(CheckLanguageHIPPlatform)
+  set_property(TEST CMakeOnly.CheckLanguageHIPPlatform APPEND PROPERTY LABELS "HIP")
+  add_CMakeOnly_test(CheckLanguageHIPPlatform2)
+  set_property(TEST CMakeOnly.CheckLanguageHIPPlatform2 APPEND PROPERTY LABELS "HIP")
+endif()
+
+add_CMakeOnly_test(CheckStructHasMember)
+
+add_CMakeOnly_test(CompilerIdC)
+add_CMakeOnly_test(CompilerIdCXX)
+
+if (APPLE AND CMAKE_C_COMPILER_ID MATCHES "Clang|GNU")
+  add_CMakeOnly_test(CompilerIdOBJC)
+  add_CMakeOnly_test(CheckOBJCCompilerFlag)
+  add_CMakeOnly_test(CompilerIdOBJCXX)
+  add_CMakeOnly_test(CheckOBJCXXCompilerFlag)
+endif()
+
+if(CMake_TEST_CUDA)
+  add_CMakeOnly_test(CompilerIdCUDA)
+endif()
+
+
+if(CMAKE_Fortran_COMPILER)
+  add_CMakeOnly_test(CompilerIdFortran)
+  set_property(TEST CMakeOnly.CompilerIdFortran APPEND PROPERTY LABELS "Fortran")
+endif()
+if(CMAKE_GENERATOR MATCHES "Visual Studio ([^9]|9[0-9])")
+  add_CMakeOnly_test(CompilerIdCSharp)
+endif()
+
+add_test(CMakeOnly.AllFindModules ${CMAKE_CMAKE_COMMAND}
+  -DTEST=AllFindModules
+  -DCMAKE_ARGS=-DCMake_TEST_CMakeOnly.AllFindModules_NO_VERSION=${CMake_TEST_CMakeOnly.AllFindModules_NO_VERSION}
+  -P ${CMAKE_CURRENT_BINARY_DIR}/Test.cmake
   )
 
-set(CMakeLib_TESTS
-  testArgumentParser.cxx
-  testCTestBinPacker.cxx
-  testCTestResourceAllocator.cxx
-  testCTestResourceSpec.cxx
-  testCTestResourceGroups.cxx
-  testDebug.cxx
-  testGccDepfileReader.cxx
-  testGeneratedFileStream.cxx
-  testJSONHelpers.cxx
-  testRST.cxx
-  testRange.cxx
-  testOptional.cxx
-  testString.cxx
-  testStringAlgorithms.cxx
-  testSystemTools.cxx
-  testUTF8.cxx
-  testXMLParser.cxx
-  testXMLSafe.cxx
-  testFindPackageCommand.cxx
-  testUVHandlePtr.cxx
-  testUVJobServerClient.cxx
-  testUVProcessChain.cxx
-  testUVRAII.cxx
-  testUVStreambuf.cxx
-  testCMExtMemory.cxx
-  testCMExtAlgorithm.cxx
-  testCMExtEnumSet.cxx
-  testList.cxx
-  testCMakePath.cxx
+add_CMakeOnly_test(SelectLibraryConfigurations)
+
+add_CMakeOnly_test(TargetScope)
+
+add_CMakeOnly_test(find_library)
+add_CMakeOnly_test(find_path)
+
+add_test(CMakeOnly.ProjectInclude ${CMAKE_CMAKE_COMMAND}
+  -DTEST=ProjectInclude
+  -DCMAKE_ARGS=-DCMAKE_PROJECT_ProjectInclude_INCLUDE=${CMAKE_CURRENT_SOURCE_DIR}/ProjectInclude/include.cmake
+  -P ${CMAKE_CURRENT_BINARY_DIR}/Test.cmake
   )
-if(CMake_ENABLE_DEBUGGER)
-  list(APPEND CMakeLib_TESTS
-    testDebuggerAdapter.cxx
-    testDebuggerAdapterPipe.cxx
-    testDebuggerBreakpointManager.cxx
-    testDebuggerVariables.cxx
-    testDebuggerVariablesHelper.cxx
-    testDebuggerVariablesManager.cxx
-    testDebuggerThread.cxx
-    )
-endif()
-if (CMake_TEST_FILESYSTEM_PATH OR NOT CMake_HAVE_CXX_FILESYSTEM)
-  list(APPEND CMakeLib_TESTS testCMFilesystemPath.cxx)
-endif()
 
-add_executable(testUVProcessChainHelper testUVProcessChainHelper.cxx)
-target_link_libraries(testUVProcessChainHelper CMakeLib)
+add_test(CMakeOnly.ProjectIncludeAny ${CMAKE_CMAKE_COMMAND}
+  -DTEST=ProjectIncludeAny
+  -DCMAKE_ARGS=-DCMAKE_PROJECT_INCLUDE=${CMAKE_CURRENT_SOURCE_DIR}/ProjectInclude/include.cmake
+  -P ${CMAKE_CURRENT_BINARY_DIR}/Test.cmake
+  )
 
-set(testRST_ARGS ${CMAKE_CURRENT_SOURCE_DIR})
-set(testUVProcessChain_ARGS $<TARGET_FILE:testUVProcessChainHelper>)
-set(testUVStreambuf_ARGS $<TARGET_FILE:cmake>)
-set(testCTestResourceSpec_ARGS ${CMAKE_CURRENT_SOURCE_DIR})
-set(testGccDepfileReader_ARGS ${CMAKE_CURRENT_SOURCE_DIR})
+add_test(CMakeOnly.ProjectIncludeBefore ${CMAKE_CMAKE_COMMAND}
+  -DTEST=ProjectIncludeBefore
+  -DCMAKE_ARGS=-DCMAKE_PROJECT_ProjectInclude_INCLUDE_BEFORE=${CMAKE_CURRENT_SOURCE_DIR}/ProjectIncludeBefore/include.cmake
+  -P ${CMAKE_CURRENT_BINARY_DIR}/Test.cmake
+  )
 
-if(WIN32)
-  list(APPEND CMakeLib_TESTS
-    testVisualStudioSlnParser.cxx
-    )
-  configure_file(testVisualStudioSlnParser.h.in testVisualStudioSlnParser.h @ONLY)
-endif()
+add_test(CMakeOnly.ProjectIncludeBeforeAny ${CMAKE_CMAKE_COMMAND}
+  -DTEST=ProjectIncludeBeforeAny
+  -DCMAKE_ARGS=-DCMAKE_PROJECT_INCLUDE_BEFORE=${CMAKE_CURRENT_SOURCE_DIR}/ProjectIncludeBefore/include.cmake
+  -P ${CMAKE_CURRENT_BINARY_DIR}/Test.cmake
+  )
 
-configure_file(testXMLParser.h.in testXMLParser.h @ONLY)
-file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/testUVProcessChainInput.txt" "HELLO WORLD!")
+include(CMakeParseArguments)
 
-create_test_sourcelist(CMakeLib_TEST_SRCS CMakeLibTests.cxx ${CMakeLib_TESTS})
-add_executable(CMakeLibTests ${CMakeLib_TEST_SRCS})
-target_link_libraries(CMakeLibTests PRIVATE CTestLib CMakeLib)
-if(CMake_BUILD_PCH)
-  target_precompile_headers(CMakeLibTests PRIVATE "<iostream>" "<cm3p/uv.h>")
-  target_compile_definitions(CMakeLibTests PRIVATE "NOMINMAX")
-endif()
-if(WIN32)
-  target_compile_definitions(CMakeLibTests PRIVATE WIN32_LEAN_AND_MEAN)
-endif()
+function(add_major_test module)
+  cmake_parse_arguments(MAJOR_TEST "NOLANG" "VERSION_VAR" "VERSIONS" ${ARGN})
+  foreach (_version IN LISTS MAJOR_TEST_VERSIONS)
+    add_test(CMakeOnly.MajorVersionSelection-${module}_${_version}
+      ${CMAKE_CMAKE_COMMAND}
+        -DTEST=MajorVersionSelection-${module}_${_version}
+        -DTEST_SOURCE=MajorVersionSelection
+        "-DCMAKE_ARGS=-DMAJOR_TEST_MODULE=${module};-DMAJOR_TEST_VERSION=${_version};-DMAJOR_TEST_NO_LANGUAGES=${MAJOR_TEST_NOLANG};-DMAJOR_TEST_VERSION_VAR=${MAJOR_TEST_VERSION_VAR}"
+        -P ${CMAKE_CURRENT_BINARY_DIR}/Test.cmake
+      )
+  endforeach ()
+endfunction()
 
-set_property(TARGET CMakeLibTests PROPERTY C_CLANG_TIDY "")
-set_property(TARGET CMakeLibTests PROPERTY CXX_CLANG_TIDY "")
-
-add_executable(testEncoding testEncoding.cxx)
-target_link_libraries(testEncoding cmsys)
-
-foreach(testfile ${CMakeLib_TESTS})
-  get_filename_component(test "${testfile}" NAME_WE)
-  add_test(NAME CMakeLib.${test} COMMAND CMakeLibTests ${test} ${${test}_ARGS})
-endforeach()
-
-if(TEST_CompileCommandOutput)
-  add_executable(runcompilecommands run_compile_commands.cxx)
-  target_link_libraries(runcompilecommands CMakeLib)
-endif()
-
-add_subdirectory(PseudoMemcheck)
-
-add_executable(testAffinity testAffinity.cxx)
-target_link_libraries(testAffinity CMakeLib)
-
-if(CMake_ENABLE_DEBUGGER)
-  add_executable(testDebuggerNamedPipe testDebuggerNamedPipe.cxx)
-  target_link_libraries(testDebuggerNamedPipe PRIVATE CMakeLib)
-  set(testDebuggerNamedPipe_Project_ARGS
-    "$<TARGET_FILE:cmake>" ${CMAKE_CURRENT_SOURCE_DIR}/DebuggerSample ${CMAKE_CURRENT_BINARY_DIR}/DebuggerSample
-    )
-  set(testDebuggerNamedPipe_Script_ARGS
-    "$<TARGET_FILE:cmake>" ${CMAKE_CURRENT_SOURCE_DIR}/DebuggerSample/script.cmake
-    )
-  foreach(case Project Script)
-    add_test(NAME CMakeLib.testDebuggerNamedPipe-${case} COMMAND testDebuggerNamedPipe ${testDebuggerNamedPipe_${case}_ARGS})
-    set_property(TEST CMakeLib.testDebuggerNamedPipe-${case} PROPERTY TIMEOUT 300)
-  endforeach()
-  if(WIN32)
-    target_compile_definitions(testDebuggerNamedPipe PRIVATE WIN32_LEAN_AND_MEAN)
-  endif()
-endif()
+add_major_test(PythonLibs VERSIONS 2 3 VERSION_VAR PYTHONLIBS_VERSION_STRING)
+add_major_test(PythonInterp NOLANG VERSIONS 3 VERSION_VAR PYTHON_VERSION_STRING)
+add_major_test(Qt VERSIONS 3 4 VERSION_VAR QT_VERSION_STRING)
