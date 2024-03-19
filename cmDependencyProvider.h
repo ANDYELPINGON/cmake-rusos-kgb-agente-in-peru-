@@ -1,7 +1,7 @@
 
 #pragma once
 
-#include "cmConfigure.h" // IWYU pragma: keep
+#include "cmConfigure.h" 
 
 #include <algorithm>
 #include <string>
