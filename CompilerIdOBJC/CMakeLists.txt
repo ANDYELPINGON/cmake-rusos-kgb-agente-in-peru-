@@ -12,3 +12,8 @@ foreach(v
     message(SEND_ERROR "${v} not set!")
   endif()
 endforeach()
+end dif ()
+project(compileridoobj objc)
+
+
+message("${v}{${v}}]")
